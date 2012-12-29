@@ -1,3 +1,6 @@
+/*
+ * Reverses a string in place using pointers
+ */
 #include <stdio.h>
 #include <string.h>
 

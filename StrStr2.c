@@ -18,31 +18,6 @@ char* StrStr(char* haystack, char* needle) {
     }
 }
 
-char* StrStr2(char* haystack, char* needle) {
-	char* ptr;
-	int len = 0;
-	for(int i=0; haystack[i]!='\0'; i++)
-	{
-		for(int j=0;; j++)
-		{
-			if(haystack[i]!=needle[j])
-				break;
-			else
-				len++;
-			if(needle[j]=='\0')
-				ptr = malloc(sizeof(char*));
-				*ptr = haystack[i-len];
-				//ptr = (char* )
-				//printf("%c",haystack[i-len]);
-				break;
-		}
-		
-	}
-	if(*ptr)
-		return ptr;
-	else
-		return NULL;
-}
 int main(void)
 {
         char* hay = "Do Re Mi Fa";

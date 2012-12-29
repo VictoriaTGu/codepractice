@@ -1,3 +1,8 @@
+/* Given a long string, tests whether it contains a given substring
+ * haystack is the long strong
+ * needle is the substring
+ */
+
 #include <stdio.h>
 #include <string.h>
  /* strstr */

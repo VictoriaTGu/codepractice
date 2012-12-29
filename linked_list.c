@@ -1,3 +1,7 @@
+/*
+ * Linked list implementation and operations
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,6 +10,7 @@ struct Node{
 	struct Node *Next;
 };
 
+// Traverse and free the list given a starting node
 void traverse(struct Node* current)
 {
 	while(current != NULL)
@@ -17,6 +22,8 @@ void traverse(struct Node* current)
 		current = tmp -> Next;
 	}
 }
+
+// Insert a new node to the front of the list
 struct Node* newNode(struct Node* root, int n)
 {
 	struct Node* new;
@@ -26,6 +33,7 @@ struct Node* newNode(struct Node* root, int n)
 	return new;
 }
 
+// Delete a node with a given integer value
 struct Node* deleteNode(struct Node* root, int n)
 {
 	struct Node* conductor;
@@ -60,6 +68,7 @@ struct Node* deleteNode(struct Node* root, int n)
 
 int
 main(void){
+	// Popoulate the linked list
 	struct Node* root;
 	root = malloc(sizeof(struct Node));
 	if(root==NULL)
@@ -80,9 +89,16 @@ main(void){
 			conductor -> Next = NULL;
 		}
 	}
+	
 	struct Node* new;
 	struct Node* new2;
+	
+	// Add a node to the front of the linked list
 	new = newNode(root, 5);
-	new2 = deleteNode(new, 5);
+	
+	// Delete another node
+	new2 = deleteNode(new, 10);
+	
+	// Free the list
 	traverse(new2);
 }

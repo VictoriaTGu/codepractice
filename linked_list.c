@@ -68,7 +68,7 @@ struct Node* deleteNode(struct Node* root, int n)
 
 int
 main(void){
-	// Popoulate the linked list
+	// Populate the linked list
 	struct Node* root;
 	root = malloc(sizeof(struct Node));
 	if(root==NULL)

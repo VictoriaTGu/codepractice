@@ -1,3 +1,6 @@
+/* 
+ * Given a string, detects whether it is an anagram
+ */
 #include <stdio.h>
 #include <string.h>
 

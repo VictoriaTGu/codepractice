@@ -1,4 +1,5 @@
-/* Given a long string, tests whether it contains a given substring
+/* 
+ * Given a long string, tests whether it contains a given substring
  * haystack is the long strong
  * needle is the substring
  */
@@ -20,8 +21,8 @@
  }
 int main(void)
 {
-	const char *hay = "Yo ho";
-	const char *needle = "Yo";
+	const char *hay = "Do Re";
+	const char *needle = "Re";
 	char* result = StrStr(hay, needle);
 	printf("%d\n", *result);
 }

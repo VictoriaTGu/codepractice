@@ -1,4 +1,5 @@
-/* Given a long string, tests whether it contains a given substring
+/* 
+ *Given a long string, tests whether it contains a given substring
  * Does what StrStr.c does except with pointers
  * haystack is the long strong
  * needle is the substring

@@ -1,5 +1,9 @@
 /*
  * Linked list implementation and operations
+ * 	traversal (and freeing)
+ *	reversal
+ *	adding a node (in order from least to greatest)
+ *	deleting a node
  *
  */
 #include <stdio.h>
@@ -60,28 +64,39 @@ struct Node* newNode(struct Node* root, int n)
 
 	// Use conductor to visit nodes
 	struct Node* conductor;
-	conductor = malloc(sizeof(struct Node));
 	conductor = root;
 	
 	// Use prev to keep track of previously visited node
 	struct Node* prev;
-	prev = malloc(sizeof(struct Node));
 	prev = root;
 
-	// If current node is less than or equal than 
-	//	the new node, keep traversing	
-	if(conductor -> Data <= n)
+	conductor = conductor -> Next;
+	
+	// If n is less than all items in the list
+	if(prev -> Data > n)
+	{
+		new -> Next = prev;
+		return new;
+	}
+	
+	// If n is less than or equal than 
+	//	the current node, keep traversing	
+	while(conductor -> Data <= n)
 	{
 		prev = conductor;
 		conductor = conductor -> Next;
+		if(conductor == NULL)
+		{
+			prev -> Next = new;
+			new -> Next = NULL;
+			return root;
+		}
 	}
+	
 	// If the current node is greater than the
 	//	new node, insert the new node before it
-	else
-	{
-		prev -> Next = new;
-		new -> Next = conductor;
-	}
+	prev -> Next = new;
+	new -> Next = conductor;
 	return root;
 }
 
@@ -145,7 +160,7 @@ main(void){
 	struct Node* new;
 		
 	// Add a node to the appropriate position in the linked list
-	new = newNode(root, 14);
+	new = newNode(root, 20);
 	
 	// Delete another node
 	new = deleteNode(new, 12);

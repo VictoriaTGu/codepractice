@@ -1,5 +1,9 @@
 /*
  * Linked list implementation and operations
+ * 	traversal (and freeing)
+ *	reversal
+ *	adding a node (in order from least to greatest)
+ *	deleting a node
  *
  */
 #include <stdio.h>
@@ -10,7 +14,7 @@ struct Node{
 	struct Node *Next;
 };
 
-// Traverse and free the list given a starting node
+// Traverse and free the list given a pointer to a starting node
 void traverse(struct Node* current)
 {
 	while(current != NULL)
@@ -23,14 +27,77 @@ void traverse(struct Node* current)
 	}
 }
 
-// Insert a new node to the front of the list
+// Reverse the linked list given the pointer to the start node
+struct Node* reverse(struct Node* conductor)
+{
+	// Temporary pointer for node immediately preceding the conductor
+	struct Node* prev;
+	prev = conductor;
+
+	// Temporary pointer for node immediately following the conductor
+	struct Node* tmp;
+
+	conductor = conductor -> Next;
+
+	prev -> Next = NULL;
+
+	while(conductor != NULL)
+	{
+		tmp = conductor -> Next;
+		conductor -> Next = prev;
+		
+		// shift conductor and prev over by one
+		prev = conductor;
+		conductor = tmp;	
+	}
+	
+	return prev;
+}
+
+// Insert a new node in the correct position in the list
 struct Node* newNode(struct Node* root, int n)
 {
+	// Make new node
 	struct Node* new;
 	new = malloc(sizeof(struct Node));
 	new -> Data = n;
-	new -> Next = root;
-	return new;
+
+	// Use conductor to visit nodes
+	struct Node* conductor;
+	conductor = root;
+	
+	// Use prev to keep track of previously visited node
+	struct Node* prev;
+	prev = root;
+
+	conductor = conductor -> Next;
+	
+	// If n is less than all items in the list
+	if(prev -> Data > n)
+	{
+		new -> Next = prev;
+		return new;
+	}
+	
+	// If n is less than or equal than 
+	//	the current node, keep traversing	
+	while(conductor -> Data <= n)
+	{
+		prev = conductor;
+		conductor = conductor -> Next;
+		if(conductor == NULL)
+		{
+			prev -> Next = new;
+			new -> Next = NULL;
+			return root;
+		}
+	}
+	
+	// If the current node is greater than the
+	//	new node, insert the new node before it
+	prev -> Next = new;
+	new -> Next = conductor;
+	return root;
 }
 
 // Delete a node with a given integer value
@@ -68,7 +135,7 @@ struct Node* deleteNode(struct Node* root, int n)
 
 int
 main(void){
-	// Populate the linked list
+	// Populate the linked list with nodes for integers 10-15
 	struct Node* root;
 	root = malloc(sizeof(struct Node));
 	if(root==NULL)
@@ -91,14 +158,16 @@ main(void){
 	}
 	
 	struct Node* new;
-	struct Node* new2;
-	
-	// Add a node to the front of the linked list
-	new = newNode(root, 5);
+		
+	// Add a node to the appropriate position in the linked list
+	new = newNode(root, 20);
 	
 	// Delete another node
-	new2 = deleteNode(new, 10);
+	new = deleteNode(new, 12);
 	
+	new = reverse(new);
+
 	// Free the list
-	traverse(new2);
+	traverse(new);
+	
 }

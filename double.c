@@ -53,54 +53,52 @@ struct Node* reverse(struct Node* conductor)
 	}
 	
 	return prev;
-}
+}*/
 
 // Insert a new node in the correct position in the list
 struct Node* newNode(struct Node* root, int n)
 {
-	// Make new node
-	struct Node* new;
+	// create the new node
+	struct Node *new;
 	new = malloc(sizeof(struct Node));
 	new -> Data = n;
-
-	// Use conductor to visit nodes
-	struct Node* conductor;
+	
+	// create conductor to traverse the list
+	struct Node *conductor;
 	conductor = root;
-	
-	// Use prev to keep track of previously visited node
-	struct Node* prev;
-	prev = root;
 
-	conductor = conductor -> Next;
-	
-	// If n is less than all items in the list
-	if(prev -> Data > n)
-	{
-		new -> Next = prev;
+	// insert at the front of the list
+	if(conductor -> Data > n){
+		new -> Next = conductor;
+		conductor -> Prev = new;
 		return new;
 	}
-	
-	// If n is less than or equal than 
-	//	the current node, keep traversing	
-	while(conductor -> Data <= n)
+
+	// insert after the front of the list, before the end
+	while(conductor-> Next != NULL)
 	{
-		prev = conductor;
-		conductor = conductor -> Next;
-		if(conductor == NULL)
-		{
+		if(conductor -> Data <= n){
+			conductor = conductor -> Next;
+		} 
+		else{
+			struct Node *prev;
+			prev = conductor -> Prev;
 			prev -> Next = new;
-			new -> Next = NULL;
+			new -> Prev = prev;
+			new -> Next = conductor;
+			conductor -> Prev = new;
 			return root;
 		}
 	}
-	
-	// If the current node is greater than the
-	//	new node, insert the new node before it
-	prev -> Next = new;
-	new -> Next = conductor;
+
+	// insert at the end of the list
+	conductor -> Next = new;
+	new -> Prev = conductor;
+	new -> Next = NULL;
 	return root;
 }
 
+/*
 // Delete a node with a given integer value
 struct Node* deleteNode(struct Node* root, int n)
 {
@@ -161,17 +159,17 @@ main(void){
 		}
 	}
 	
-	/*struct Node* new;
+	struct Node* new;
 		
 	// Add a node to the appropriate position in the linked list
-	new = newNode(root, 20);
+	new = newNode(root, 11);
 	
 	// Delete another node
-	new = deleteNode(new, 12);
+	//new = deleteNode(new, 12);
 	
-	new = reverse(new);*/
+	//new = reverse(new);
 
 	// Free the list
-	traverse(root);
+	traverse(new);
 	
 }

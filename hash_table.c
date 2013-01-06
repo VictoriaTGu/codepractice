@@ -1,173 +1,148 @@
 /*
- * Linked list implementation and operations
- * 	traversal (and freeing)
- *	reversal
- *	adding a node (in order from least to greatest)
- *	deleting a node
- *
+ * Hash table implementation (adopted from literateprograms.org)
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-struct Node{
-	int Data;
-	struct Node *Next;
+typedef size_t hash_size;
+
+struct hashnode{
+	char* key;
+	void* data;
+	struct hashnode* next;
 };
 
-// Traverse and free the list given a pointer to a starting node
-void traverse(struct Node* current)
+typedef struct hashtbl{
+	hash_size size;
+	
+	// nodes is a pointer to an array of pointers to the first element 
+	//	of a linked list
+	struct hashnode **nodes;
+	
+	hash_size (*hashfunc)(const char *);
+} HASHTBL;
+
+HASHTBL* hashtbl_create(hash_size size, hash_size(*hashfunct)(const char *));
+void hashtbl_free(HASHTBL *hashtbl);
+int hashtbl_insert(HASHTBL *hashtbl, const char *key, void *data);
+//int hashtbl_remove(HASHTBL *hashtbl, const char *key);
+void *hashtbl_get(HASHTBL *hashtbl, const char *key);
+//int hashtbl_resize(HASHTBL *hashtbl, hash_size size);
+
+// implementation of strdup()
+static char *mystrdup(const char *s)
 {
-	while(current != NULL)
-	{
-		printf("%d\n", current -> Data);
-		struct Node* tmp;
-		tmp = current;
-		free(current);
-		current = tmp -> Next;
-	}
+	char *b;
+	if(!(b=malloc(strlen(s)+1))) return NULL;
+	strcpy(b, s);
+	return b;
 }
 
-// Reverse the linked list given the pointer to the start node
-struct Node* reverse(struct Node* conductor)
+// default hash function adds together the key's ASCII values
+static hash_size def_hashfunc(const char *key)
 {
-	// Temporary pointer for node immediately preceding the conductor
-	struct Node* prev;
-	prev = conductor;
+	hash_size hash=0;
+	
+	while(*key) hash+=(unsigned char)*key++;
 
-	// Temporary pointer for node immediately following the conductor
-	struct Node* tmp;
+	return hash;
+}
 
-	conductor = conductor -> Next;
-
-	prev -> Next = NULL;
-
-	while(conductor != NULL)
-	{
-		tmp = conductor -> Next;
-		conductor -> Next = prev;
+// free the hash table
+void hashtbl_free(HASHTBL *hashtbl){
+	hash_size n;
+	struct hashnode *node, *oldnode;
+	for(n=0; n < hashtbl->size; ++n){
+		node = hashtbl->nodes[n];
+		while(node){
+			oldnode=node;
+			node=node->next;
+			free(oldnode);
+		}
+	}
+	free(hashtbl->nodes);
+	free(hashtbl);
 		
-		// shift conductor and prev over by one
-		prev = conductor;
-		conductor = tmp;	
-	}
-	
-	return prev;
 }
 
-// Insert a new node in the correct position in the list
-struct Node* newNode(struct Node* root, int n)
-{
-	// Make new node
-	struct Node* new;
-	new = malloc(sizeof(struct Node));
-	new -> Data = n;
-
-	// Use conductor to visit nodes
-	struct Node* conductor;
-	conductor = root;
-	
-	// Use prev to keep track of previously visited node
-	struct Node* prev;
-	prev = root;
-
-	conductor = conductor -> Next;
-	
-	// If n is less than all items in the list
-	if(prev -> Data > n)
-	{
-		new -> Next = prev;
-		return new;
-	}
-	
-	// If n is less than or equal than 
-	//	the current node, keep traversing	
-	while(conductor -> Data <= n)
-	{
-		prev = conductor;
-		conductor = conductor -> Next;
-		if(conductor == NULL)
-		{
-			prev -> Next = new;
-			new -> Next = NULL;
-			return root;
+int hashtbl_insert(HASHTBL *hashtbl, const char* key, void* data){
+	hash_size hash = hashtbl->hashfunc(key) % hashtbl->size;
+	struct hashnode *node;
+	node = hashtbl->nodes[hash];
+	while(node){
+		if(strcmp(node->key, key)==0){
+			node->data=data;
+			return 0;
 		}
+		node=node->next;
 	}
+
+	// if key is not found, insert node at beginning of the list
+	node = malloc(sizeof(struct hashnode));
 	
-	// If the current node is greater than the
-	//	new node, insert the new node before it
-	prev -> Next = new;
-	new -> Next = conductor;
-	return root;
+	// copy the key into the new node
+	if(!(node->key=mystrdup(key))){
+		free(node);
+		return -1;
+	}
+	node -> data = data;
+	node -> next = hashtbl->nodes[hash];
+	hashtbl->nodes[hash]=node;
+	return 0;
 }
 
-// Delete a node with a given integer value
-struct Node* deleteNode(struct Node* root, int n)
-{
-	struct Node* conductor;
-	struct Node* prev;
-	prev = malloc(sizeof(struct Node));
-	conductor = malloc(sizeof(struct Node));
-	conductor = root;
-	prev = conductor;
-	while(conductor !=NULL)
-	{
-		if(n == (conductor -> Data))
-		{
-			if(conductor == prev)
-			{
-				root = conductor -> Next;
-				conductor = conductor -> Next;
-			}
-			else
-			{
-				prev -> Next = conductor -> Next; 
-				conductor = conductor -> Next;
-			}	
-		}
-		else
-		{
-			prev = conductor; 
-			conductor = conductor -> Next;
-		}
+// searches for a key and returns its data value
+void* hashtbl_get(HASHTBL *hashtbl, const char* key){
+
+	// compute the hash value for the key
+	hash_size hash = hashtbl -> hashfunc(key) % (hashtbl -> size);
+	
+	// access the linked list for that hash value
+	struct hashnode *node;
+	node = hashtbl->nodes[hash];
+	
+	// if key is found, return data value
+	while(node){
+		if(strcmp(key, node->key)==0)
+			return node -> data;
+		node = node -> next;
 	}
-	return root;
+	return NULL;
 }
 
-int
-main(void){
-	// Populate the linked list with nodes for integers 10-15
-	struct Node* root;
-	root = malloc(sizeof(struct Node));
-	if(root==NULL)
-		return 1;
-	struct Node* conductor;
-	conductor=root;
-	int i;
-	for(i=0; i<6; i++)
-	{
-		conductor -> Data = 10 + i;
-		if(i<5)
-		{
-			conductor -> Next = malloc(sizeof(struct Node));
-			conductor = conductor -> Next;
-		}
-		else
-		{
-			conductor -> Next = NULL;
-		}
-	}
-	
-	struct Node* new;
-		
-	// Add a node to the appropriate position in the linked list
-	new = newNode(root, 20);
-	
-	// Delete another node
-	new = deleteNode(new, 12);
-	
-	new = reverse(new);
+HASHTBL* hashtbl_create(hash_size size, hash_size (*hashfunc)(const char *)){
+	HASHTBL *hashtbl;
+	hashtbl = malloc(sizeof(HASHTBL));
+	if(hashtbl==NULL)
+		return NULL;
 
-	// Free the list
-	traverse(new);
+	hashtbl -> nodes = calloc(size, sizeof(struct hashnode*));
+	if(hashtbl->nodes == NULL){
+		free(hashtbl);
+		return NULL;
+	}
+
+	hashtbl -> size = size;
+
+	if(hashfunc)
+		hashtbl -> hashfunc = hashfunc;
+	else
+		hashtbl -> hashfunc = def_hashfunc;
 	
+	return hashtbl;
+}
+int main(void){
+	HASHTBL *hashtbl;
+	if(!(hashtbl=hashtbl_create(16, NULL))){
+		fprintf(stderr, "Error: hashtbl_create() failed\n");
+		exit(EXIT_FAILURE);
+	}
+
+	hashtbl_insert(hashtbl, "Sports", "Tennis");
+	hashtbl_insert(hashtbl, "Sports", "Football");
+	const char *str = hashtbl_get(hashtbl, "Sports");
+	printf("Inserted: %s\n", str);
+	
+	return 0;
 }

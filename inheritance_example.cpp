@@ -13,6 +13,7 @@ class vehicle{
 		float wheel_load(void);
 };
 
+// The car class inherits from vehicle
 class car: public vehicle{
 	int passenger_load;
 	public:

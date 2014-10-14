@@ -25,6 +25,7 @@ class Graph:
         self.num_vertices = 0
     def isEmpty(self):
         return self.num_vertices <= 0
+    # the key is the (i,j) position in the input array
     def addVertex(self, key):
         # vertex already exists
         if key in self.vertex_list:
@@ -32,6 +33,7 @@ class Graph:
         new_vertex = Vertex(key)
         self.vertex_list[key] = new_vertex
         self.num_vertices += 1
+    # pick a pseudo-random starting point for traversing graph
     def randomVertex(self):
         if self.isEmpty():
             return None
@@ -41,11 +43,12 @@ class Graph:
         if key in self.vertex_list:
             return self.vertex_list[key]
         return None
+    # add two vertices and an edge between them
     def addEdge(self, key1, key2):
         self.addVertex(key1)
         self.addVertex(key2)
         self.getVertex(key1).addNeighbor(self.getVertex(key2))
-    # TODO: delete from values as well as keys
+    # input: list of keys of nodes to be deleted
     def deleteVertices(self, key_list):
         for key in key_list:
             if key in self.vertex_list:
@@ -72,6 +75,7 @@ def breadthFirstSearch(graph, start_node):
     visited_keys = map(lambda vertex: vertex.getID(), visited)
     return visited_keys
 		
+# checks whether indices are within the bounds of a square array
 def inArray(i, j, size):
     if i < 0 or j < 0:
         return False
@@ -92,6 +96,8 @@ def getArrayNeighbors(array, i, j, size):
         neighbors[i+1,j] = array[i+1][j]
     return neighbors
 
+# out of the four (or fewer) neighbors of a plot of land,
+#   return the one with the lowest elevation (the sink)
 def getSink(array, i, j, size):
     neighbors = getArrayNeighbors(array, i, j, size)
     current_min = array[i][j]
@@ -103,16 +109,19 @@ def getSink(array, i, j, size):
             min_index = key
     return min_index
 
-# TODO: two-way connections
+# input: square array of elevation data with dimensions (size x size)
+# output: sizes of basins (connected components) in decreasing order
 def findConnectedComponents(array, size):
     graph = Graph()
-    # create a graph where A -> B if A flows into B
+    # create a graph where A and B are connected if A is a sink for B or
+    #   B is a sink for A
     for row_num in range(size):
         for col_num in range(size):
             current_vertex = (row_num, col_num)
             graph.addVertex(current_vertex)
             flow_to = getSink(array, row_num, col_num, size)
             if current_vertex != flow_to:
+                # add edges both ways
                 graph.addEdge(current_vertex, flow_to)
                 graph.addEdge(flow_to, current_vertex)
     size_of_components = []
@@ -125,6 +134,7 @@ def findConnectedComponents(array, size):
     return sorted(size_of_components, reverse=True)
 			
 def main():
+    # unit tests
     array = [[1,5,2],[2,4,7],[3,6,9]]
     size = 3
     print findConnectedComponents(array, size) == [7,2]

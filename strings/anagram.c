@@ -1,5 +1,5 @@
 /* 
- * Given a string, detects whether it is an anagram
+ * Given a string, detects whether it is a palindrome
  */
 #include <stdio.h>
 #include <string.h>

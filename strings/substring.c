@@ -15,7 +15,7 @@
          return (char *) haystack;
      needlelen = strlen(needle);
      for (; (haystack = strchr(haystack, *needle)) != NULL; haystack++)
-         if (strncmp(haystack, needle, needlelen) == 0)
+         if (strcmp(haystack, needle, needlelen) == 0)
              return (char *) haystack;
      return NULL;
  }

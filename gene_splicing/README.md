@@ -19,15 +19,19 @@ This part of the problem can be described as finding the longest overlap between
 The brute force approach is to have two pointers, starting with both pointing to the last character of string1 and string2. To illustrate: 
 
 string1 CCTG
+
 string2 TGAG
 
 possible prefix = TGAG
+
 Scan backwards on TGAG and string1 simultaneously (GTCC and GAGT respectively). They don't match, so decrement the pointer on string2 so it now points to the second to last character.
 
 possible prefix = TGA
+
 Scan backwards on TGA and string1 simultaneously (AGT and GTC respectively). They don't match, so decrement the pointer on string2 again.
 
 possible prefix = TG
+
 Scan backwards on TG and string1 simultaneously (GT and GT respectively). They match, so return the index on string1 where the overlap begins (2)
 
 The function that implements this is get_substring_match.
@@ -35,7 +39,8 @@ The function that implements this is get_substring_match.
 ### Possible Optimizations
 
 You could implement an algorithm that generates a finite state machine for each sequence (similar to what is used for regular expressions; see https://www.ics.uci.edu/~eppstein/161/960222.html), which then allows you to find the sequence in linear time, though the construction of the finite state machine is O(k^3) where k is the length of the sequence. Since you have to do this construction for every sequence, and the brute force approach is O(k^2) anyway which is still polynomial, I decided not to implement the finite state machine for now.
-It would take O(k^3 * n) to construct finite state machines then O(n^2 * k) to match sequence pairs. This makes sense if k is smaller than n. If k=n then it's the same. I don't anticipate k growing much larger because biotechnology tends to use short sequences that can be sequenced in parallel.
+
+It would take O(k^3 * n) to construct finite state machines + O(n^2 * k) to match sequence pairs. This makes sense if k is smaller than n. If k=n then it's the same. I don't anticipate k growing much larger because biotechnology tends to use short sequences that can be sequenced in parallel.
 
 ## Part 2
 As discussed in the overview, the bottleneck in running time is the combinatorial explosion from evaluating all pairs of sequences. Instead of evaluating all pairs, we could eliminate possible pairs as we pair off so it would be O(50 + 49 + 48 + ... + 1) which is (50)(50+1)/2 = O(n^2).

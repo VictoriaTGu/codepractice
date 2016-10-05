@@ -1,5 +1,3 @@
-import unittest
-
 class Node(object):
     def __init__(self, seq):
         self.seq = seq
@@ -16,6 +14,9 @@ class Node(object):
         return len(self.seq)
 
 class SeqList(object):
+    """Data structure that supports
+    removal in O(1) time
+    """
     def __init__(self, seq_lst):
         self.head_node = None
         self.create_list(seq_lst)
@@ -54,42 +55,11 @@ class SeqList(object):
         return self.head_node
 
     def remove(self, node_to_remove):
-        # need to update the head of the list
         preceding_node = node_to_remove.prev_node
         following_node = node_to_remove.next_node
         if following_node:
             following_node.prev_node = preceding_node
         if preceding_node:
             preceding_node.next_node = following_node
-            self.head_node = preceding_node
-        else:
+        if self.head_node == node_to_remove:
             self.head_node = following_node
-
-class TestSeqList(unittest.TestCase):
-    def test_create_linked_lst(self):
-        seq_lst = ['AB', 'BC', 'CD']
-        s = SeqList(seq_lst)
-        for i, seq in enumerate(s):
-            assert seq_lst[i] == str(seq)
-        assert len(seq_lst) == len(s)
-
-    def test_remove(self):
-        seq_lst = ['AB', 'BC', 'CD']
-        s = SeqList(seq_lst)
-        s.remove(s.head_node.next_node)
-        new_seq_lst = ['AB', 'CD']
-        for i, seq in enumerate(s):
-            assert new_seq_lst[i] == str(seq)
-        assert len(new_seq_lst) == len(s)
-
-    def test_remove_head(self):
-        seq_lst = ['AB', 'BC', 'CD']
-        s = SeqList(seq_lst)
-        s.remove(s.head_node)
-        new_seq_lst = ['BC', 'CD']
-        for i, seq in enumerate(s):
-            assert new_seq_lst[i] == str(seq)
-        assert len(new_seq_lst) == len(s)
-
-if __name__ == "__main__":
-    unittest.main()

@@ -1,13 +1,13 @@
 import unittest
 
-from gene import find_index_of_overlap
-from gene import get_substring_match
-from gene import concat_two_seqs
-from gene import find_substring_pairs
-from gene import get_head
-from gene import concat_sequences
-from linked_lst import SeqList
-from linked_lst import Node
+from concat_sequences import find_index_of_overlap
+from concat_sequences import get_substring_match
+from concat_sequences import concat_two_seqs
+from concat_sequences import find_substring_pairs
+from concat_sequences import get_head
+from concat_sequences import concat_sequences
+from sequence_list import SeqList
+from sequence_list import Node
 
 
 class TestConcatSeqs(unittest.TestCase):
@@ -74,7 +74,6 @@ class TestConcatSeqs(unittest.TestCase):
             assert snd_to_fst_match[str(head)] == str(tail)
         assert len(snd_to_fst_match) == len(m2)
 
-
     def test_get_head(self):
         snd_to_fst_match = {'GTCA': 'AAGT', 'CATT': 'GTCA'}
         assert get_head(snd_to_fst_match) == 'AAGT'
@@ -94,7 +93,7 @@ class TestConcatSeqs(unittest.TestCase):
         result = concat_sequences(seq_lst)
         assert concat_sequences(seq_lst) == 'CAAAGTCATTG'
 
-    def test_even_larger_sequences(self):
+    def test_concat_even_larger_sequences(self):
         seq_lst = ['ATTAGACCTG', 'CCTGCCGGAA', 'AGACCTGCCG', 'GCCGGAATAC']
         result = concat_sequences(seq_lst)
         assert concat_sequences(seq_lst) == 'ATTAGACCTGCCGGAATAC'

@@ -17,6 +17,12 @@ Since factorial growth is much greater than polynomial growth, I decided to use 
 
 Without any optimizations, the brute force approach would be O(k^2) * O(n choose 2) where n is the number of sequences and k is the length of each sequence. 
 
+## Code Structure
+- concat_sequences.py contains the main logic and helper functions
+- concat_sequences.py contains tests for concat_sequences
+- sequence_lst.py contains the implementation of a data structure for holding unpaired DNA sequences. I made the interface generic so that it abstracts away the underlying implementation.
+- sequence_lst_test.py contains tests for sequence_lst
+
 ## Part 1 
 This part of the problem can be described as finding the longest overlap between the suffix of one sequence and the prefix of another, and deciding these sequences should be paired together if the overlap is at least as long as half the length of the sequence.
 The brute force approach is to have two pointers, starting with both pointing to the last character of string1 and string2. To illustrate: 
@@ -39,7 +45,7 @@ Scan backwards on TG and string1 simultaneously (GT and GT respectively). They m
 
 The function that implements this is get_substring_match.
 
-### Possible Optimizations
+#### Possible Optimizations
 
 You could implement an algorithm that generates a finite state machine for each sequence (similar to what is used for regular expressions; see https://www.ics.uci.edu/~eppstein/161/960222.html), which then allows you to find the sequence in linear time, though the construction of the finite state machine is O(k^3) where k is the length of the sequence. Since you have to do this construction for every sequence, and the brute force approach is O(k^2) anyway which is still polynomial, I decided not to implement the finite state machine for now.
 
@@ -50,7 +56,7 @@ As discussed in the overview, the bottleneck in running time is the combinatoria
 
 The function find_substring_pairs takes an unpaired sequence and finds the immediately preceding and immediately following sequences, if they exist. Since each sequence only has one unique preceding sequence and one unique following sequence (I confirmed this via email), once we find them we can eliminate the sequence from consideration in future pairings. 
 
-In order to make the optimization work, I needed to be able to delete from the data structure holding the unpaired sequences in O(1) time. I decided to implement a doubly-linked list (sequence_list.py) since I didn't need to search the list (which would take linear team), only delete from it.
+In order to make the optimization work, I needed to be able to delete from the data structure holding the unpaired sequences in O(1) time. I decided to implement a doubly-linked list (sequence_list.py) since I didn't need to search the list (which would take linear time), only delete from it.
 
 ## Part 3
 

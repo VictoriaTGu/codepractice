@@ -19,9 +19,9 @@ Without any optimizations, the brute force approach would be O(k^2) * O(n choose
 
 ## Code Structure
 - concat_sequences.py contains the main logic and helper functions
-- concat_sequences.py contains tests for concat_sequences
+- concat_sequences_test.py contains tests for concat_sequences (some unit tests and some integration)
 - sequence_lst.py contains the implementation of a data structure for holding unpaired DNA sequences. I made the interface generic so that it abstracts away the underlying implementation.
-- sequence_lst_test.py contains tests for sequence_lst
+- sequence_lst_test.py contains tests for sequence_lst (some unit tests and some integration)
 
 ## Part 1 
 This part of the problem can be described as finding the longest overlap between the suffix of one sequence and the prefix of another, and deciding these sequences should be paired together if the overlap is at least as long as half the length of the sequence.

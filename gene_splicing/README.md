@@ -2,8 +2,11 @@
 The input to this problem is a list of DNA sequences (at most 50 of them), each of which has a length not exceeding 1000 characters.
 
 The problem can be broken down into several main pieces:
+
 1. Determining whether two DNA sequences should be glued together
+
 2. Pairing up the DNA sequences to be glued together 
+
 3. Gluing all the pairs of sequences together into one long sequence
 
 The brute force approach for part 1 has a time complexity of O(k^2) where k is the length of each individual sequence. In this case k=100.
@@ -48,6 +51,10 @@ As discussed in the overview, the bottleneck in running time is the combinatoria
 The function find_substring_pairs takes an unpaired sequence and finds the immediately preceding and immediately following sequences, if they exist. Since each sequence only has one unique preceding sequence and one unique following sequence (I confirmed this via email), once we find them we can eliminate the sequence from consideration in future pairings. 
 
 In order to make the optimization work, I needed to be able to delete from the data structure holding the unpaired sequences in O(1) time. I decided to implement a doubly-linked list (sequence_list.py) since I didn't need to search the list (which would take linear team), only delete from it.
+
+## Part 3
+
+Gluing all the sequences together was relatively straightforward (see concat_sequences and concat_two_seqs) once you know which ones are paired and what index the overlap starts at. Basically I had a dictionary that maps the first sequence to the next sequence and so on, and I just traversed that dictionary and appended to a string, using the already computed indices for the overlap.
 
 ## Running Time
 Other sections also discuss running time and tradeoffs, but in summary this solution that uses a data structure for unpaired DNA sequences would be O(n^2 * k^2) where n is the number of sequences and k is the length of each sequence.

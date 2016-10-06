@@ -1,0 +1,89 @@
+{
+    "incomes": [
+        {
+            "name": "Starbucks",
+            "amount": 400.00,
+            "schedule": {
+                "type": "interval",
+                "period": 14,
+                "start": "2016-03-01"
+            }
+        },
+        {
+            "name": "Walmart",
+            "amount": 960.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [1, 15]
+            }
+        }
+    ],
+    "expenses": [
+        {
+            "name": "Rent",
+            "amount": 600.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [1],
+                "start": "2016-02-01"
+            }
+        },
+        {
+            "name": "Utilities",
+            "amount": 40.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [16]
+            }
+        },
+        {
+            "name": "Credit Card",
+            "amount": 100.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [12]
+            }
+        },
+        {
+            "name": "Car Insurance",
+            "amount": 80.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [24]
+            }
+        },
+        {
+            "name": "Family Trip",
+            "amount": 500.00,
+            "schedule": {
+                "type": "oneTime",
+                "start": "2016-06-15"
+            }
+        },
+        {
+            "name": "Guitar Lessons",
+            "amount": 100.00,
+            "schedule": {
+            	"type": "interval",
+            	"period": 7,
+            	"start": "2016-02-20"
+            }
+        },
+        {
+            "name": "Groceries",
+            "amount": 200.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [1]
+            }
+        },
+        {
+            "name": "Health Insurance",
+            "amount": 40.00,
+            "schedule": {
+                "type": "monthly",
+                "days": [5]
+            }
+        }
+    ]
+}

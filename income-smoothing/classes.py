@@ -3,7 +3,7 @@ from datetime import datetime
 DATE_FORMAT = '%Y-%m-%d'
 
 
-class AccountingEvent(object):
+class ScheduledEvent(object):
     # factory for generating the different types of incomes and expenses
     def factory(common_attr, event_frequency, addl_info=None):
         if event_frequency == "interval":
@@ -46,7 +46,7 @@ class AccountingEvent(object):
         return {'type': self.event_type, 'name': self.name}
 
 
-class MonthlyEvent(AccountingEvent):
+class MonthlyEvent(ScheduledEvent):
     def __init__(self, common_attr, days):
         super(MonthlyEvent, self).__init__(common_attr)
         self.days = days
@@ -62,7 +62,7 @@ class MonthlyEvent(AccountingEvent):
             return self.amount
 
 
-class IntervalEvent(AccountingEvent):
+class IntervalEvent(ScheduledEvent):
     def __init__(self, common_attr, period):
         super(IntervalEvent, self).__init__(common_attr)
         self.period = period
@@ -78,7 +78,7 @@ class IntervalEvent(AccountingEvent):
             return self.amount
 
 
-class OneTimeEvent(AccountingEvent):
+class OneTimeEvent(ScheduledEvent):
     def __init__(self, common_attr):
         super(OneTimeEvent, self).__init__(common_attr)
 

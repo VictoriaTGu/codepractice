@@ -10,6 +10,7 @@ from classes import DATE_FORMAT
 from classes import AccountingEvent
 
 START_DATE = '2016-01-01'
+AMOUNT_FORMAT = '{0:.2f}'
 
 def main():
     json_dict = json.load(sys.stdin)
@@ -18,9 +19,10 @@ def main():
     base = datetime.strptime(START_DATE, DATE_FORMAT)
     dates_in_year = [base + timedelta(days=i) for i in xrange(365)]
     allocations, sources = get_allocations_and_sources(incomes, expenses, dates_in_year)
-    events = generate_time_series(dates_in_year, allocations, sources, incomes, expenses)
+    smoothed_spendable_income = get_smoothed_spendable_income(dates_in_year, incomes, allocations)
+    events = generate_time_series(dates_in_year, allocations, sources, incomes, expenses, smoothed_spendable_income)
     sys.stdout.write(
-            json.dumps({"events": events}, sort_keys=True, indent=4, separators=(',', ': '))
+            json.dumps({"events": events}, indent=4, separators=(',', ': '))
             + '\n'
     )
 
@@ -77,18 +79,46 @@ def get_allocations_and_sources(incomes, expenses, dates):
 
     return allocations, sources
 
-def generate_time_series(dates, allocations, sources, incomes, expenses):
+
+def get_smoothed_spendable_income(dates, incomes, allocations):
+    spendable_income = []
+    for date in dates:
+        day_spendable_income = 0.0
+        for income in incomes:
+            day_spendable_income += get_spendable_income(date, income, allocations)
+        spendable_income.append(day_spendable_income)
+    return sum(spendable_income) / len(dates)
+
+
+def get_spendable_income(date, income, allocations):
+    day_spendable_income = 0.0
+    amount = income.get_amount_on_date(date)
+    if amount is not None:
+        day_spendable_income = float(amount) - sum([
+            allocation['amount'] for allocation in allocations[(date, income)]
+        ])
+    return day_spendable_income
+
+
+def generate_time_series(dates, allocations, sources, incomes, expenses, smoothed_spendable_income):
     events = []
+    saved = 0.0
     for date in dates:
         for income in incomes:
             if income.get_amount_on_date(date):
+                spendable = get_spendable_income(date, income, allocations)
+                amount_to_save = max([0.0, spendable - smoothed_spendable_income])
+                spendable -= amount_to_save
+
                 income_event_dict = income.to_dict()
                 income_event_dict['date'] = datetime.strftime(date, DATE_FORMAT)
+                income_event_dict['saved'] = AMOUNT_FORMAT.format(amount_to_save)
+                income_event_dict['spendable'] = AMOUNT_FORMAT.format(spendable)
                 income_event_dict['allocations'] = [
                     {
                         'date': datetime.strftime(allocation['date'], DATE_FORMAT),
                         'name': allocation['event'].name,
-                        'amount': allocation['amount']
+                        'amount': AMOUNT_FORMAT.format(allocation['amount'])
                     }
                     for allocation in allocations[(date, income)]
                 ]
@@ -102,7 +132,7 @@ def generate_time_series(dates, allocations, sources, incomes, expenses):
                     {
                         'date': datetime.strftime(source['date'], DATE_FORMAT),
                         'name': source['event'].name,
-                        'amount': source['amount_allocated']
+                        'amount': AMOUNT_FORMAT.format(source['amount_allocated'])
                     }
                     for source in sources[(date, expense)]
                 ]

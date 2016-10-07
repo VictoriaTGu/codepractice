@@ -20,12 +20,16 @@ def main():
     expenses = parse_events(json_dict['expenses'], 'expense')
     start_date = datetime.strptime(START_DATE, DATE_FORMAT)
     dates_in_year = [start_date + timedelta(days=i) for i in xrange(365)]
-    allocations, sources = get_allocations_and_sources(incomes, expenses, dates_in_year)
-    income_event_to_spendable_amount = get_smoothed_spendable_income(dates_in_year, incomes, allocations)
-    events = generate_time_series(dates_in_year, allocations, sources, incomes, expenses, income_event_to_spendable_amount)
+    allocations, sources = get_allocations_and_sources(dates_in_year, incomes, expenses)
+    income_event_to_spendable_amount = get_smoothed_spendable_income(
+        dates_in_year, incomes, allocations
+    )
+    events = generate_time_series(
+        dates_in_year, allocations, sources, incomes, expenses, income_event_to_spendable_amount
+    )
     sys.stdout.write(
-            json.dumps({"events": events}, indent=4, separators=(',', ': '))
-            + '\n'
+        json.dumps({"events": events}, indent=4, separators=(',', ': '))
+        + '\n'
     )
 
 def parse_events(events, event_type):
@@ -44,7 +48,7 @@ def parse_events(events, event_type):
     return event_lst
 
 
-def get_allocations_and_sources(incomes, expenses, dates):
+def get_allocations_and_sources(dates, incomes, expenses):
     available_sources = []
     allocations, sources = defaultdict(list), defaultdict(list)
     start_date = dates[0] if dates else None
@@ -62,30 +66,36 @@ def get_allocations_and_sources(incomes, expenses, dates):
             while amount_owed is not None and amount_owed > 0:
                 if len(available_sources) == 0:
                     raise_insolvent()
-
-                # use the available income source with the largest leftover balance
-                (amount_leftover, seconds_since_start_date, income) = heappop(available_sources)
-                amount_leftover = abs(amount_leftover)
-                amount_extracted = min([amount_leftover, amount_owed])
-                amount_leftover -= amount_extracted
-                if amount_leftover > 0.0:
-                    heappush(available_sources, (-amount_leftover, seconds_since_start_date, income))
-
+                amount_extracted, income_with_metadata = match_income_source(
+                    available_sources, amount_owed, start_date
+                )
+                # record the income -> expense allocation
                 expense_with_metadata = {
                     'date': date, 'event': expense, 'amount_allocated': amount_extracted
                 }
-                # record the income -> expense allocation
-                income_date = start_date + timedelta(seconds=-seconds_since_start_date)
-                allocations[(income_date, income)].append(expense_with_metadata)
+                key = (income_with_metadata['date'], income_with_metadata['event'])
+                allocations[key].append(expense_with_metadata)
                 # record the expense -> income source
-                income_with_metadata = {
-                    'date': income_date, 'event': income, 'amount_allocated': amount_extracted
-                }
                 sources[(date, expense)].append(income_with_metadata)
 
                 amount_owed -= amount_extracted
 
     return allocations, sources
+
+
+def match_income_source(available_sources, amount_owed, start_date):
+    # use the available income source with the largest leftover balance
+    (amount_leftover, seconds_since_start_date, income) = heappop(available_sources)
+    amount_leftover = abs(amount_leftover)
+    amount_extracted = min([amount_leftover, amount_owed])
+    amount_leftover -= amount_extracted
+    if amount_leftover > 0.0:
+        heappush(available_sources, (-amount_leftover, seconds_since_start_date, income))
+    income_date = start_date + timedelta(seconds=-seconds_since_start_date)
+    income_with_metadata = {
+        'date': income_date, 'event': income, 'amount_allocated': amount_extracted
+    }
+    return amount_extracted, income_with_metadata
 
 
 def get_smoothed_spendable_income(dates, incomes, allocations):
@@ -113,53 +123,60 @@ def get_spendable_income(date, income, allocations):
 
 def generate_time_series(dates, allocations, sources, incomes, expenses, income_event_to_spendable_amount):
     events = []
-    saved = 0.0
     for date in dates:
         for income in incomes:
             if income.get_amount_on_date(date):
-                spendable = get_spendable_income(date, income, allocations)
-                spendable_after_smoothing = income_event_to_spendable_amount[(date, income)]
-
-                amount_to_save = max([0.0, spendable - spendable_after_smoothing])
-                spendable -= amount_to_save
-                # print 'savings balance:', saved, 'spending:', spendable, 'amount saved:', amount_to_save
-                if spendable < spendable_after_smoothing:
-                    taking_from_savings = min(saved, spendable_after_smoothing - spendable)
-                    # print 'taking from savings:', taking_from_savings, '=', spendable + taking_from_savings
-                    saved -= taking_from_savings
-                    print 'taking from savings', spendable + taking_from_savings
-                else:
-                    print 'spending', spendable
-                saved += amount_to_save
-
-                income_event_dict = income.to_dict()
-                income_event_dict['date'] = datetime.strftime(date, DATE_FORMAT)
-                income_event_dict['saved'] = AMOUNT_FORMAT.format(amount_to_save)
-                income_event_dict['spendable'] = AMOUNT_FORMAT.format(spendable)
-                income_event_dict['allocations'] = [
-                    {
-                        'date': datetime.strftime(allocation['date'], DATE_FORMAT),
-                        'name': allocation['event'].name,
-                        'amount': AMOUNT_FORMAT.format(allocation['amount_allocated'])
-                    }
-                    for allocation in allocations[(date, income)]
-                ]
-                events.append(income_event_dict)
+                spendable, amount_to_save = calculate_spendable_and_saved(
+                    date, income, allocations, income_event_to_spendable_amount
+                )
+                events.append(generate_formatted_income_dict(
+                    income, date, amount_to_save, spendable, allocations
+                ))
 
         for expense in expenses:
             if expense.get_amount_on_date(date):
-                expense_event_dict = expense.to_dict()
-                expense_event_dict['date'] = datetime.strftime(date, DATE_FORMAT)
-                expense_event_dict['sources'] = [
-                    {
-                        'date': datetime.strftime(source['date'], DATE_FORMAT),
-                        'name': source['event'].name,
-                        'amount': AMOUNT_FORMAT.format(source['amount_allocated'])
-                    }
-                    for source in sources[(date, expense)]
-                ]
-                events.append(expense_event_dict)
+                events.append(generate_formatted_expense_dict(
+                    expense, date, sources
+                ))
     return events
+
+
+def calculate_spendable_and_saved(date, income, allocations, income_event_to_spendable_amount):
+    spendable = get_spendable_income(date, income, allocations)
+    spendable_after_smoothing = income_event_to_spendable_amount[(date, income)]
+    amount_to_save = max([0.0, spendable - spendable_after_smoothing])
+    spendable -= amount_to_save
+    return spendable, amount_to_save
+
+
+def generate_formatted_income_dict(income, date, amount_to_save, spendable, allocations):
+    income_event_dict = income.to_dict()
+    income_event_dict['date'] = datetime.strftime(date, DATE_FORMAT)
+    income_event_dict['saved'] = AMOUNT_FORMAT.format(amount_to_save)
+    income_event_dict['spendable'] = AMOUNT_FORMAT.format(spendable)
+    income_event_dict['allocations'] = [
+        {
+            'date': datetime.strftime(allocation['date'], DATE_FORMAT),
+            'name': allocation['event'].name,
+            'amount': AMOUNT_FORMAT.format(allocation['amount_allocated'])
+        }
+        for allocation in allocations[(date, income)]
+    ]
+    return income_event_dict
+
+
+def generate_formatted_expense_dict(expense, date, sources):
+    expense_event_dict = expense.to_dict()
+    expense_event_dict['date'] = datetime.strftime(date, DATE_FORMAT)
+    expense_event_dict['sources'] = [
+        {
+            'date': datetime.strftime(source['date'], DATE_FORMAT),
+            'name': source['event'].name,
+            'amount': AMOUNT_FORMAT.format(source['amount_allocated'])
+        }
+        for source in sources[(date, expense)]
+    ]
+    return expense_event_dict
 
 
 def raise_insolvent():

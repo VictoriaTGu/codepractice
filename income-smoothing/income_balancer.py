@@ -53,6 +53,7 @@ class IncomeBalancer(object):
         self.num_elements += 1
         spendable_amount += amount_distributed_from_other_sources
         seconds_since_start_date = (date - self.start_date).total_seconds()
+        # have to negate the priority keys because heapq only implements min-heap
         heappush(self.priorityq, (-spendable_amount, -seconds_since_start_date, income_obj))
 
     def get_running_avg(self):

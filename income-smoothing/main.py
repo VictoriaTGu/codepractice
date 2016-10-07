@@ -18,8 +18,8 @@ def main():
     json_dict = json.load(sys.stdin)
     incomes = parse_events(json_dict['incomes'], 'income')
     expenses = parse_events(json_dict['expenses'], 'expense')
-    base = datetime.strptime(START_DATE, DATE_FORMAT)
-    dates_in_year = [base + timedelta(days=i) for i in xrange(365)]
+    start_date = datetime.strptime(START_DATE, DATE_FORMAT)
+    dates_in_year = [start_date + timedelta(days=i) for i in xrange(365)]
     allocations, sources = get_allocations_and_sources(incomes, expenses, dates_in_year)
     income_event_to_spendable_amount = get_smoothed_spendable_income(dates_in_year, incomes, allocations)
     events = generate_time_series(dates_in_year, allocations, sources, incomes, expenses, income_event_to_spendable_amount)

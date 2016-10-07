@@ -61,6 +61,25 @@ class TestIncomeBalancer(unittest.TestCase):
         assert spendable_amount == -2
         assert self.balancer.is_empty()
 
+    def test_realloc_all(self):
+        self.balancer.push(self.start_date, 100, None)
+        self.balancer.push(self.start_date + timedelta(days=1), 100, None)
+        self.balancer.push(self.start_date + timedelta(days=2), 100, None)
+        self.balancer.push(self.start_date + timedelta(days=3), 100, None)
+        self.balancer.push(self.start_date + timedelta(days=4), 0, None)
+        assert self.balancer.get_running_avg() == 80.0
+        (spendable_amount, seconds, income_obj) = self.balancer.pop()
+        assert spendable_amount == -80.0
+        (spendable_amount, seconds, income_obj) = self.balancer.pop()
+        assert spendable_amount == -80.0
+        (spendable_amount, seconds, income_obj) = self.balancer.pop()
+        assert spendable_amount == -80.0
+        (spendable_amount, seconds, income_obj) = self.balancer.pop()
+        assert spendable_amount == -80.0
+        (spendable_amount, seconds, income_obj) = self.balancer.pop()
+        assert spendable_amount == -80.0
+        assert self.balancer.is_empty()
+
     def test_to_dict(self):
         self.balancer.push(self.start_date, 2, None)
         self.balancer.push(self.start_date + timedelta(days=1), 5, None)

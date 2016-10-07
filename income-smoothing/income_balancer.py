@@ -1,3 +1,35 @@
+"""
+This class encapsulates a priority queue data structure that re-balances the spendable amounts
+of each of its elements every time a new income event is added so that, whenever possible,
+the new income event has a spendable amount equal to or greater than the average spendable
+amounts of all the elements in the queue.
+
+It assumes that spendable amounts are pushed into the queue sequentially in time and that
+spendable income can only be distributed forward in time.
+
+The balancer also will NOT take so much money from a prior income source that the prior income
+source now has a spendable amount less than the average spendable amount.
+
+E.G. (This example also appears in income_balancer_test.py)
+Push(Income(200))
+Push(Income(500)) # this is greater than avg 350 so nothing is done
+Push(Income(200)) # this is less than avg 300 so push 100 from 500 to 200
+
+The elements are now:
+    Income(200)
+    Income(400)
+    Income(300) # which is now >= avg 300
+
+Now we push a fourth element:
+Push(Income(100)) # this is less than avg 250 so push 150 from 400 to 100
+
+The elements are now:
+    Income(200)
+    Income(250)
+    Income(300)
+    Income(250) # which is now >= avg 250
+"""
+
 from datetime import datetime
 from datetime import timedelta
 from heapq import heappush
@@ -28,8 +60,8 @@ class IncomeBalancer(object):
 
     def reallocate_spendable_amounts(self, new_spendable_amount):
         new_running_avg = (self.running_sum + new_spendable_amount) / (self.num_elements+1)
-        # if less than avg, then redistribute from the income sources already in the queue
         amount_distributed_from_other_sources = 0.0
+        # if less than avg, then redistribute from the income sources already in the queue
         if new_spendable_amount < new_running_avg:
             amount_to_redistribute = new_running_avg - new_spendable_amount
             temporary_queue = []
@@ -60,8 +92,3 @@ class IncomeBalancer(object):
             date = self.start_date + timedelta(seconds=abs(seconds))
             event_to_spendable_amount[(date, income_obj)] = abs(spendable_amount)
         return event_to_spendable_amount
-
-
-
-
-

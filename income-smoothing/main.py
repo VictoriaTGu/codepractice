@@ -96,7 +96,7 @@ def main():
     week_index_to_spendable_amount = get_smoothed_spendable_income(
         dates_in_year, scheduled_income, allocations
     )
-    events = generate_time_series(
+    events = generate_timeseries(
         start_date, dates_in_year, allocations, sources, scheduled_income,
         scheduled_expenses, week_index_to_spendable_amount
     )
@@ -104,6 +104,7 @@ def main():
         json.dumps({"events": events}, indent=4, separators=(',', ': '))
         + '\n'
     )
+
 
 def parse_events(events, event_type):
     """Map a list of dictionaries to a list of instances of sub-classes
@@ -166,23 +167,28 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
     available_sources = []
     allocations, sources = defaultdict(list), defaultdict(list)
     start_date = dates[0] if dates else None
-    week_index_to_sources_queue = {}
+    end_date = dates[-1] if dates else None
+    num_weeks = (end_date - start_date).days // 7 if dates else -1
+    week_index_to_sources_queue = defaultdict(list)
+    weekly_nonallocated_amounts = [0.0] * (num_weeks+1)
 
     for date in dates:
         for income in scheduled_income:
             amount = income.get_amount_on_date(date)
             if amount is not None:
-                seconds_since_start_date = (date - start_date).total_seconds()
+                week_index = (date - start_date).days // 7
                 # have to negate the priority keys because heapq only implements min-heap
-                heappush(available_sources, (-amount, -seconds_since_start_date, income))
+                heappush(week_index_to_sources_queue[week_index], (-amount, date, income))
+                weekly_nonallocated_amounts[week_index] += amount
 
         for expense in scheduled_expenses:
             amount_owed = expense.get_amount_on_date(date)
             while amount_owed is not None and amount_owed > 0:
-                if len(available_sources) == 0:
+                if sum(weekly_nonallocated_amounts) <= 0.0:
                     raise_insolvent()
                 amount_extracted, income_with_metadata = match_income_source(
-                    available_sources, amount_owed, start_date
+                    weekly_nonallocated_amounts, week_index_to_sources_queue,
+                    amount_owed, start_date
                 )
                 # record the income -> expense allocation
                 expense_with_metadata = {
@@ -198,7 +204,9 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
     return allocations, sources
 
 
-def match_income_source(available_sources, amount_owed, start_date):
+def match_income_source(
+    weekly_nonallocated_amounts, week_index_to_sources_queue, amount_owed, start_date
+):
     """Pick the available income source with the largest un-allocated balance,
     allocate as much as possible to satisfy the amount owed on the expense,
     and return the amount allocated as well as the metadata on the income source
@@ -213,15 +221,18 @@ def match_income_source(available_sources, amount_owed, start_date):
     :returns: amount extracted from a single income source, metadata on the income source
     :rtype: float, dict
     """
-    (amount_leftover, seconds_since_start_date, income) = heappop(available_sources)
+    max_nonallocated_amount = max(weekly_nonallocated_amounts)
+    week_index_of_max_amount = weekly_nonallocated_amounts.index(max_nonallocated_amount)
+    sources_queue = week_index_to_sources_queue[week_index_of_max_amount]
+    (amount_leftover, date, income) = heappop(sources_queue)
     amount_leftover = abs(amount_leftover)
     amount_extracted = min([amount_leftover, amount_owed])
     amount_leftover -= amount_extracted
+    weekly_nonallocated_amounts[week_index_of_max_amount] -= amount_extracted
     if amount_leftover > 0.0:
-        heappush(available_sources, (-amount_leftover, seconds_since_start_date, income))
-    income_date = start_date + timedelta(seconds=abs(seconds_since_start_date))
+        heappush(sources_queue, (-amount_leftover, date, income))
     income_with_metadata = {
-        'date': income_date, 'event': income, 'amount_allocated': amount_extracted
+        'date': date, 'event': income, 'amount_allocated': amount_extracted
     }
     return amount_extracted, income_with_metadata
 
@@ -275,16 +286,16 @@ def get_nonallocated_income(date, income, allocations):
     :returns: income amount minus any allocations to expenses
     :rtype: float
     """
-    day_spendable_income = 0.0
+    nonallocated_income = 0.0
     amount = income.get_amount_on_date(date)
     if amount is not None:
-        day_spendable_income = float(amount) - sum([
+        nonallocated_income = float(amount) - sum([
             allocation['amount_allocated'] for allocation in allocations[(date, income)]
         ])
-    return day_spendable_income
+    return nonallocated_income
 
 
-def generate_time_series(
+def generate_timeseries(
     start_date,
     dates,
     allocations,
@@ -329,7 +340,6 @@ def generate_time_series(
                 events.append(generate_formatted_income_dict(
                     income, date, amount_to_save, spendable, allocations
                 ))
-
         for expense in scheduled_expenses:
             if expense.get_amount_on_date(date):
                 events.append(generate_formatted_expense_dict(

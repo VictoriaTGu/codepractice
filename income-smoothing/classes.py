@@ -1,10 +1,25 @@
+"""Classes that implement get_amount_on_date(date) for different schedules of
+incomes and expenses and a base class that exposes a factory method for
+generating the appropriate class instances.
+
+Usage:
+    ScheduledEvent.factory(
+        common_attr={
+            'name': 'SomeName',
+            'amount': 100,
+            'start_date': datetime.datetime(2016,1,1),
+            event_type: income
+        },
+        event_frequency='monthly',
+        addl_info={}
+    )
+"""
 from datetime import datetime
 
 DATE_FORMAT = '%Y-%m-%d'
 
 
 class ScheduledEvent(object):
-    # factory for generating the different types of incomes and expenses
     def factory(common_attr, event_frequency, addl_info=None):
         if event_frequency == "interval":
             return IntervalEvent(common_attr=common_attr, period=addl_info['period'])

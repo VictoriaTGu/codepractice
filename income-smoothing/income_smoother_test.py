@@ -2,13 +2,13 @@ import unittest
 from datetime import datetime
 from datetime import timedelta
 
-from income_balancer import IncomeBalancer
+from income_smoother import IncomeSmoother
 
 SECONDARY_INDEX = 0
 
-class TestIncomeBalancer(unittest.TestCase):
+class TestIncomeSmoother(unittest.TestCase):
     def setUp(self):
-        self.balancer = IncomeBalancer()
+        self.balancer = IncomeSmoother()
 
     def tearDown(self):
         while not self.balancer.is_empty():

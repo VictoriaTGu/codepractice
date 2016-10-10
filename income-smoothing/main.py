@@ -75,7 +75,7 @@ import sys
 
 from classes import DATE_FORMAT
 from classes import ScheduledEvent
-from income_balancer import IncomeBalancer
+from income_smoother import IncomeSmoother
 
 START_DATE = '2016-01-01'
 AMOUNT_FORMAT = '{0:.2f}'
@@ -249,7 +249,7 @@ def match_income_source(
 
 
 def get_smoothed_spendable_income(dates, scheduled_income, allocations):
-    """Push each scheduled income event as it occurs to an income balancer
+    """Push each scheduled income event as it occurs to an income smoother
     that smooths the spendable income (after allocations) from earlier
     income events to later income events.
 
@@ -276,10 +276,10 @@ def get_smoothed_spendable_income(dates, scheduled_income, allocations):
                 weekly_nonallocated_income[week_index] += get_nonallocated_income(
                     date, income, allocations
                 )
-    balancer = IncomeBalancer()
+    smoother = IncomeSmoother()
     for week_index, nonallocated_income in enumerate(weekly_nonallocated_income):
-        balancer.push(nonallocated_income, week_index)
-    return balancer.to_dict()
+        smoother.push(nonallocated_income, week_index)
+    return smoother.to_dict()
 
 
 def get_nonallocated_income(date, income, allocations):

@@ -23,21 +23,21 @@ come in chronological order.
 On each day, iterate over the income sources that arrive that day, update the
 non-allocated amount per week, and then decide which week to pull non-allocated income
 from in order to meet the expenses for that day. For example, if the weekly income
-array so far is [450, 960, 0, 0], then the algorithm would choose week index 0.
+array so far is [450, 960, 0, 0], then the algorithm would choose week index 1.
 The algorithm keeps a hashtable mapping week indices to priority queues (each week
-has one, and it stores income sources for that week. Each income source would be
+has one, and it stores income sources for that week). Each income source would be
 prioritized based on how much non-allocated income is left over. If the expense is
 600 dollars, then it would pull income sources from the priority queue for week 1
 until either it has pulled 600 dollars or it has exhausted the sources from week 1
 and must turn to sources from another week.
 
 The reason for choosing these priority keys is to enable a greedy algorithm to
-roughly even out un-allocated amounts left over during the allocation.
+roughly even out non-allocated amounts left over during the allocation.
 
-Allocations are stored using a hash table mapping (date, income) to expense with
+Allocations are stored using a hash table mapping (date, income) to expense, with
 metadata on how much is allocated from that income source to that particular expense
 and the date of the expense. Similarly, sources are stored using a hash table mapping
-(date, expense) to income source with metadata on how much was allocated and the date
+(date, expense) to income source, with metadata on how much was allocated and the date
 of the income source.
 
 ### Insolvency
@@ -47,58 +47,69 @@ the expense cannot be satisfied using any income sources that arrived on that da
 or prior to that day while also satisfying any previous expenses.
 
 ### Income Smoothing
-This is a repeat of the comments above the `IncomeBalancer` class.
+This is a repeat of the comments above the `IncomeSmoother` class.
 
 This class encapsulates a priority queue data structure that re-balances the amounts
 of each of its elements every time a new amount is added so that, whenever possible,
-the new income event has a amount equal to or greater than the average spendable
-amounts of all the elements in the queue.
+the new income event has a amount equal to or greater than the average amounts
+of all the elements in the queue.
 
 It assumes that amounts are pushed into the queue sequentially in time and that
 income can only be distributed forward in time (you can save income and use it in the future,
 but you can't take income from the future and use it in the present).
 
-The balancer also will NOT take so much money from a prior income source that the prior income
+The smoother also will NOT take so much money from a prior income source that the prior income
 source now has a amount less than the average amount.
 
-E.G. (This example also appears in income_balancer_test.py)
+e.g. (This example also appears in income_smoother_test.py)
+
 Push(200)
+
 Push(500) # this is greater than avg 350 so nothing is done
+
 Push(200) # this is less than avg 300 so push 100 from 500 to 200
 
 The elements are now:
+
     (200)
+
     (400)
+    
     (300) # which is now >= avg 300
 
 Now we push a fourth element:
+
 Push(100) # this is less than avg 250 so push 150 from 400 to 100
 
 The elements are now:
+
     (200)
+    
     (250)
+
     (300)
+
     (250) # which is now >= avg 250
 
 #### How It Is Used 
-The IncomeBalancer interface is generic enough that you could push income events as they
+The IncomeSmoother interface is generic enough that you could push income events as they
 arrive in chronological order, but considering that multiple income sources are possible
 it made more sense to push weekly nonallocated income amounts so that it would smooth
 the weekly nonallocated income rather than just smoothing individual income events.
 
-The `balancer.to_dict()` then returns a mapping of week indices to spendable income,
+The `smoother.to_dict()` then returns a mapping of week indices to spendable income,
 which is income minus allocations for expenses and the amount saved for future weeks.
 The `generate_timeseries` function then uses this to determine, as it iterates through
 income sources, how much to assign to spendable based on what week it occurs.
 
-## In A Production Environment
+## In a Production Environment
 
 ### Handling Streaming Events
 A production environment would probably need to take in a stream of events coming in (income
 sources and expenses with expected schedules) for many people, use the factory function to
 translate them into sub-classes of ScheduledEvent, and then store them into database
 tables with user id as a foreign key. Kafka would be one such tool for taking in streaming
-events and moving them through such a pipeline.
+events and moving them through this pipeline.
 
 ### Assigning Allocations and Sources
 The current implementation requires heap space for tracking weekly nonallocated income and
@@ -124,20 +135,20 @@ that have not yet been exhausted. This could be done using a cached database loo
 (might work well if you have a high rate of cache hits).
 
 ### Smoothing Income
-If you had to re-run the simulator when unexpected events occur, the IncomeBalancer class would
+If you had to re-run the simulator when unexpected events occur, the IncomeSmoother class would
 have to be modified so that previous weeks' spending cannot be modified and only the current and
 future weeks' spending can be modified to smooth over future predicted income.
 
-Similar to the assignment of allocations and sources, it would be faster to retrieve the balancer
+Similar to the assignment of allocations and sources, it would be faster to retrieve the smoother
 at the current day (instead of replaying every day in 2016) or the last day before that it left off
 and this could be done using a cached database lookup.
 
 ## Future Improvements
 If I had more time I would work more on the income smoothing. One issue that comes up in the current
-algorithm is the cold start problem, which is that it doesn't do a great job of smoothing income
-in the first few weeks if the first few weeks have significantly less nonallocated income than
-future works. Overall, any weeks that are significantly different than the overall average will
-make it difficult for the income balancer to get a good read on what the average weekly spending
+algorithm is the outlier and cold start problem, which is that it doesn't do a great job of smoothing
+income in the first few weeks if the first few weeks have significantly less nonallocated income than
+future weeks. Overall, any weeks that are significantly different than the overall average will
+make it difficult for the income smoother to get a good read on what the average weekly spending
 should look like because it significantly changes the average.
 
 In the complex.input.json output, the weekly nonallocated income looks like this: 

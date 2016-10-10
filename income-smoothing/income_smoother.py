@@ -1,8 +1,8 @@
 """
 This class encapsulates a priority queue data structure that re-balances the amounts
 of each of its elements every time a new amount is added so that, whenever possible,
-the new income event has a amount equal to or greater than the average spendable
-amounts of all the elements in the queue.
+the new income event has a amount equal to or greater than the average amounts
+of all the elements in the queue.
 
 It assumes that amounts are pushed into the queue sequentially in time and that
 income can only be distributed forward in time (you can save income and use it in the future,
@@ -37,7 +37,7 @@ from heapq import heappush
 from heapq import heappop
 
 
-class IncomeBalancer(object):
+class IncomeSmoother(object):
     priorityq = []
     running_sum = 0.0
     num_elements = 0

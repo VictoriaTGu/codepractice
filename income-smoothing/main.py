@@ -134,16 +134,26 @@ def parse_events(events, event_type):
 
 
 def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
-    """Allocations of (income amount, date) to (expense amount, date) are done with
-    a priority queue data structure that places priority on assigning (income amount, date)
-    tuples with the most un-allocated amount left over and then breaks ties based on which
-    falls closest to the expense date (but occur before or on the same day).
+    """First, keep track of how much non-allocated income is available per week.
+    Non-allocated means the amount that is not already assigned to meet a specific
+    expense. This was simply stored in an array that is updated as the income sources
+    come in chronological order.
 
-    The reason for choosing these priority keys is to enable a greedy algorithm to
-    roughly even out un-allocated amounts left over during the allocation.
+    On each day, iterate over the income sources that arrive that day and update the
+    non-allocated amount per week. Then, for each expense that day, decide which week
+    to pull non-allocated income from in order to meet that expense.
+    For example, if the weekly income array so far is [450, 960, 0, 0], then the
+    algorithm would choose week index 0.
 
-    :param dates: list of datetime objects in chronological order
-    :type dates: list of datetime objects
+    The algorithm keeps a hashtable mapping week indices to priority queues (each week
+    has one, and it stores income sources for that week). Each income source would be
+    prioritized based on how much non-allocated income is left over. If the expense is
+    600 dollars, then it would pull income sources from the priority queue for week 1
+    until either it has pulled 600 dollars or it has exhausted the sources from week 1
+    and must turn to sources from another week.
+
+    :param dates: list of datetime.datetimes in chronological order
+    :type dates: list of datetime.datetimes
     :param scheduled_income: list of scheduled incomes
     :type scheduled_income: list of sub-classes of ScheduledEvent (e.g. MonthlyEvent)
     :param scheduled_expenses: list of scheduled expenses
@@ -155,16 +165,15 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
             with metadata on the amount allocated to that specific expense and the date of
             the expenses
         sources:
-            a dictionary mapping (date, scheduled expense) to an income source with metadata
-            on the amount allocated from that income source to the expense and the date of the
-            income event
+            a dictionary mapping (date, scheduled expense) to a list of income sources with
+            metadata on the amount allocated from that income source to the expense and
+            the date of the income event
     :rtype:
         allocations:
-            dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+            dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
         sources:
-            dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+            dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
     """
-    available_sources = []
     allocations, sources = defaultdict(list), defaultdict(list)
     start_date = dates[0] if dates else None
     end_date = dates[-1] if dates else None
@@ -187,8 +196,9 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
                 if sum(weekly_nonallocated_amounts) <= 0.0:
                     raise_insolvent()
                 amount_extracted, income_with_metadata = match_income_source(
-                    weekly_nonallocated_amounts, week_index_to_sources_queue,
-                    amount_owed, start_date
+                    weekly_nonallocated_amounts,
+                    week_index_to_sources_queue,
+                    amount_owed
                 )
                 # record the income -> expense allocation
                 expense_with_metadata = {
@@ -205,18 +215,19 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
 
 
 def match_income_source(
-    weekly_nonallocated_amounts, week_index_to_sources_queue, amount_owed, start_date
+    weekly_nonallocated_amounts, week_index_to_sources_queue, amount_owed
 ):
-    """Pick the available income source with the largest un-allocated balance,
-    allocate as much as possible to satisfy the amount owed on the expense,
-    and return the amount allocated as well as the metadata on the income source
+    """Pick the week with the largest un-allocated balance, pick an income source from
+    that week, and allocate as much as possible to satisfy the amount owed on the expense.
+    Finally, return the amount allocated as well as the metadata on the income source
 
-    :param available_sources: priority queue with available sources of income
-    :type available_sources: list
+    :param weekly_nonallocated_amounts: array tracking non-allocated amounts per week
+    :type weekly_nonallocated_amounts: list of floats
+    :param week_index_to_sources_queue: dict mapping week index to priority queue
+    with available sources of income
+    :type week_index_to_sources_queue: dict(index, priority queue)
     :param amount_owed: amount owed on the expense
     :type amount_owed: float
-    :param start_date: start of the date range for income sources
-    :type start_date: datetime object
 
     :returns: amount extracted from a single income source, metadata on the income source
     :rtype: float, dict
@@ -242,17 +253,17 @@ def get_smoothed_spendable_income(dates, scheduled_income, allocations):
     that smooths the spendable income (after allocations) from earlier
     income events to later income events.
 
-    :param dates: list of datetime objects, sequential in time
-    :type dates: list of datetime objects
+    :param dates: list of datetime.datetimes, sequential in time
+    :type dates: list of datetime.datetimes
     :param scheduled_income: list of scheduled income events
     :type scheduled_income: list of sub-classes of ScheduledEvent
     :param allocations: dict mapping (date, income) to list of expenses with metadata
     :type allocations:
-            dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+            dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
 
     :returns: dict mapping (date, income) to appropriate spendable amount
         (after allocations and savings for smoothing future income)
-    :rtype: dict((datetime object, sub-class of ScheduledEvent), float)
+    :rtype: dict((datetime.datetime, sub-class of ScheduledEvent), float)
     """
     start_date = dates[0] if dates else None
     last_date = dates[-1] if dates else None
@@ -276,12 +287,12 @@ def get_nonallocated_income(date, income, allocations):
     allocations to expenses
 
     :param date: date of income
-    :type date: datetime object
+    :type date: datetime.datetime
     :param income: scheduled income object
     :type income: sub-class of ScheduledEvent
     :param allocations: dict mapping (date, income) to list of expenses
     :type allocations:
-        dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+        dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
 
     :returns: income amount minus any allocations to expenses
     :rtype: float
@@ -309,15 +320,15 @@ def generate_timeseries(
     smoothed spendable amounts
 
     :param start_date: first date in time series
-    :type start_date: datetime object
+    :type start_date: datetime.datetime
     :param dates: list of dates in sequential time order
-    :type dates: list of datetime objects
+    :type dates: list of datetime.datetimes
     :param allocations: dict mapping (date, income) to list of expenses
     :type allocations:
-        dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+        dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
     :param sources: dict mapping (date, expense) to list of sources
     :type sources:
-        dict((datetime object, sub-class of ScheduledEvent), [dicts with metadata])
+        dict((datetime.datetime, sub-class of ScheduledEvent), [dicts with metadata])
     :param scheduled_income: list of scheduled income event objects
     :type scheduled_income: list of sub-classes of ScheduledEvent
     :param scheduled_expense: list of scheduled expense event objects

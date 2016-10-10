@@ -93,12 +93,12 @@ def main():
     allocations, sources = get_allocations_and_sources(
         dates_in_year, scheduled_income, scheduled_expenses
     )
-    income_event_to_spendable_amount = get_smoothed_spendable_income(
+    week_index_to_spendable_amount = get_smoothed_spendable_income(
         dates_in_year, scheduled_income, allocations
     )
     events = generate_time_series(
-        dates_in_year, allocations, sources, scheduled_income,
-        scheduled_expenses, income_event_to_spendable_amount
+        start_date, dates_in_year, allocations, sources, scheduled_income,
+        scheduled_expenses, week_index_to_spendable_amount
     )
     sys.stdout.write(
         json.dumps({"events": events}, indent=4, separators=(',', ': '))
@@ -166,6 +166,7 @@ def get_allocations_and_sources(dates, scheduled_income, scheduled_expenses):
     available_sources = []
     allocations, sources = defaultdict(list), defaultdict(list)
     start_date = dates[0] if dates else None
+    week_index_to_sources_queue = {}
 
     for date in dates:
         for income in scheduled_income:
@@ -243,12 +244,19 @@ def get_smoothed_spendable_income(dates, scheduled_income, allocations):
     :rtype: dict((datetime object, sub-class of ScheduledEvent), float)
     """
     start_date = dates[0] if dates else None
-    balancer = IncomeBalancer(start_date)
+    last_date = dates[-1] if dates else None
+    num_weeks = (last_date - start_date).days // 7 if dates else -1
+    weekly_nonallocated_income = [0.0] * (num_weeks + 1)
     for date in dates:
         for income in scheduled_income:
             if income.get_amount_on_date(date):
-                spendable_income = get_nonallocated_income(date, income, allocations)
-                balancer.push(date, spendable_income, income)
+                week_index = (date - start_date).days // 7
+                weekly_nonallocated_income[week_index] += get_nonallocated_income(
+                    date, income, allocations
+                )
+    balancer = IncomeBalancer()
+    for week_index, nonallocated_income in enumerate(weekly_nonallocated_income):
+        balancer.push(nonallocated_income, week_index)
     return balancer.to_dict()
 
 
@@ -277,17 +285,20 @@ def get_nonallocated_income(date, income, allocations):
 
 
 def generate_time_series(
+    start_date,
     dates,
     allocations,
     sources,
     scheduled_income,
     scheduled_expenses,
-    income_event_to_spendable_amount
+    week_index_to_spendable_amount
 ):
     """Generate formatted dictionaries describing a timeseries of income and
     expense events, with metadata using previously assigned allocations and
     smoothed spendable amounts
 
+    :param start_date: first date in time series
+    :type start_date: datetime object
     :param dates: list of dates in sequential time order
     :type dates: list of datetime objects
     :param allocations: dict mapping (date, income) to list of expenses
@@ -300,10 +311,10 @@ def generate_time_series(
     :type scheduled_income: list of sub-classes of ScheduledEvent
     :param scheduled_expense: list of scheduled expense event objects
     :type scheduled_expense: list of sub-classes of ScheduledEvent
-    :param income_event_to_spendable_amount: dict mapping (date, income) to
+    :param week_index_to_spendable_amount: dict mapping week index to
         smoothed spendable amount
-    :type income_event_to_spendable_amount:
-        dict((datetime object, sub-class of ScheduledEvent), float)
+    :type week_index_to_spendable_amount:
+        dict(int, float)
 
     :returns: list of dictionaries, each describing an income or expense event
     :rtype: list of dict
@@ -313,7 +324,7 @@ def generate_time_series(
         for income in scheduled_income:
             if income.get_amount_on_date(date):
                 spendable, amount_to_save = calculate_spendable_and_saved(
-                    date, income, allocations, income_event_to_spendable_amount
+                    date, income, start_date, allocations, week_index_to_spendable_amount
                 )
                 events.append(generate_formatted_income_dict(
                     income, date, amount_to_save, spendable, allocations
@@ -327,14 +338,16 @@ def generate_time_series(
     return events
 
 
-def calculate_spendable_and_saved(date, income, allocations, income_event_to_spendable_amount):
+def calculate_spendable_and_saved(date, income, start_date, allocations, week_index_to_spendable_amount):
     """Calculate the spendable amount for a specific scheduled income and date where
     spendable = (amount - amount allocated to expenses - amount saved) and saved amount
     """
     spendable = get_nonallocated_income(date, income, allocations)
-    spendable_after_smoothing = income_event_to_spendable_amount[(date, income)]
+    week_index = (date - start_date).days // 7
+    spendable_after_smoothing = week_index_to_spendable_amount[week_index]
     amount_to_save = max([0.0, spendable - spendable_after_smoothing])
     spendable -= amount_to_save
+    week_index_to_spendable_amount[week_index] -= spendable
     return spendable, amount_to_save
 
 
